@@ -1,0 +1,82 @@
+run:
+  run_id: "seds_f3_C1_sweep"
+  output_dir: "runs/seds_f3_C1_sweep"
+  mode: "batch"
+  decoding:
+    temperature: 0.0
+    max_tokens: 500
+  constraints:
+    timeout_s: 180
+  repeats: 3
+  random_seed: 7
+  electricity_price_eur_per_kwh: 0.30
+
+tasks:
+  include:
+    - "tasks/family3_forecast/seds_f3_C1_sweep.yaml"
+
+models:
+  # --- General instruct (you already use these) ---
+  - model_id: "ollama-qwen2.5-3b-instruct"
+    adapter: "ollama"
+    params:
+      model_name: "qwen2.5:3b-instruct"
+      host: "http://localhost:11434"
+
+  - model_id: "ollama-qwen2.5-7b-instruct"
+    adapter: "ollama"
+    params:
+      model_name: "qwen2.5:7b-instruct"
+      host: "http://localhost:11434"
+
+  - model_id: "ollama-mistral-7b-instruct"
+    adapter: "ollama"
+    params:
+      model_name: "mistral:7b-instruct"
+      host: "http://localhost:11434"
+
+  # --- Baselines already installed ---
+  - model_id: "ollama-llama3-latest"
+    adapter: "ollama"
+    params:
+      model_name: "llama3:latest"
+      host: "http://localhost:11434"
+
+  - model_id: "ollama-mistral-latest"
+    adapter: "ollama"
+    params:
+      model_name: "mistral:latest"
+      host: "http://localhost:11434"
+
+  - model_id: "ollama-gemma-latest"
+    adapter: "ollama"
+    params:
+      model_name: "gemma:latest"
+      host: "http://localhost:11434"
+
+  # --- Code-focused (good for family4_codegen) ---
+  - model_id: "ollama-deepseek-coder-latest"
+    adapter: "ollama"
+    params:
+      model_name: "deepseek-coder:latest"
+      host: "http://localhost:11434"
+
+  - model_id: "ollama-codellama-latest"
+    adapter: "ollama"
+    params:
+      model_name: "codellama:latest"
+      host: "http://localhost:11434"
+
+  # --- Older baseline (optional, but useful reference) ---
+  - model_id: "ollama-llama2-latest"
+    adapter: "ollama"
+    params:
+      model_name: "llama2:latest"
+      host: "http://localhost:11434"
+
+  - model_id: "ollama-qwen-latest"
+    adapter: "ollama"
+    params:
+      model_name: "qwen:latest"
+      host: "http://localhost:11434"
+

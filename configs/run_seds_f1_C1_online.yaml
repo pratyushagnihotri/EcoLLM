@@ -1,0 +1,40 @@
+run:
+  run_id: "seds_f1_C1_sweep"
+  output_dir: "runs/seds_f1_C1_sweep_online"
+  mode: "batch"
+  decoding:
+    temperature: 0.0
+    max_tokens: 500
+  constraints:
+    timeout_s: 180
+  repeats: 1
+  random_seed: 7
+  electricity_price_eur_per_kwh: 0.30
+
+tasks:
+  include:
+    - "tasks/family1_qa/seds_f1_C1_sweep_online.yaml"
+
+models:
+  - model_id: "openai-gpt-4.1-mini"
+    adapter: "openai"
+    params:
+      model_name: "gpt-4.1-mini"
+      service_tier: "standard"
+
+  - model_id: "openai-gpt-4.1"
+    adapter: "openai"
+    params:
+      model_name: "gpt-4.1"
+      service_tier: "standard"
+
+  - model_id: "openai-o3-mini"
+    adapter: "openai"
+    params:
+      model_name: "o3-mini"
+      service_tier: "standard"
+      reasoning_effort: "medium"
+
+
+
+

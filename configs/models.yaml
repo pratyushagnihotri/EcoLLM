@@ -1,0 +1,19 @@
+# Templates for real adapters (not used by default run.yaml)
+models:
+  - model_id: "offline-qwen2.5-7b"
+    adapter: "ollama"
+    params:
+      model_name: "qwen2.5:7b-instruct"
+      host: "http://localhost:11434"
+
+  - model_id: "offline-llama3-70b"
+    adapter: "vllm"
+    params:
+      model_name: "meta-llama/Llama-3.3-70B-Instruct"
+      base_url: "http://localhost:8000/v1"
+
+  - model_id: "online-gpt-5-mini"
+    adapter: "openai"
+    params:
+      model_name: "gpt-5-mini"
+      api_key_env: "OPENAI_API_KEY"

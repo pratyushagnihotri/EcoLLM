@@ -1,0 +1,43 @@
+run:
+  run_id: "seds_sweep"
+  output_dir: "runs/seds_sweep"
+  mode: "batch"
+  decoding:
+    temperature: 0.0
+    max_tokens: 500
+  constraints:
+    timeout_s: 180
+  repeats: 1
+  random_seed: 7
+  electricity_price_eur_per_kwh: 0.30
+
+tasks:
+  include:
+    - "tasks/family1_qa/seds_qa_sweep.yaml"
+
+models:
+  # Offline (Ollama)
+  - model_id: "ollama-qwen2.5-3b-instruct"
+    adapter: "ollama"
+    params: { model_name: "qwen2.5:3b-instruct", host: "http://localhost:11434" }
+
+  - model_id: "ollama-qwen2.5-7b-instruct"
+    adapter: "ollama"
+    params: { model_name: "qwen2.5:7b-instruct", host: "http://localhost:11434" }
+
+  - model_id: "ollama-mistral-7b-instruct"
+    adapter: "ollama"
+    params: { model_name: "mistral:7b-instruct", host: "http://localhost:11434" }
+
+  - model_id: "ollama-llama3-latest"
+    adapter: "ollama"
+    params: { model_name: "llama3:latest", host: "http://localhost:11434" }
+
+  # Online (OpenAI) — keep only the ones you want to run for now
+  - model_id: "openai-gpt-4.1-mini"
+    adapter: "openai"
+    params: { model_name: "gpt-4.1-mini" }
+
+  - model_id: "openai-gpt-4.1"
+    adapter: "openai"
+    params: { model_name: "gpt-4.1" }
