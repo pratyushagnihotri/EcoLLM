@@ -1,0 +1,6 @@
+2026-02-16T04:13:48.273631Z
+4491/4500
+99.80
+ollama-qwen-latest
+seds_f2_C1_L1000_027
+family2_anomaly

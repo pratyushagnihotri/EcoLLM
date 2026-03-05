@@ -1,0 +1,6 @@
+2026-02-23T22:50:42.406756Z
+4491/4500
+99.80
+ollama-qwen-latest
+seds_f4_C1_r1000_027
+family4_codegen

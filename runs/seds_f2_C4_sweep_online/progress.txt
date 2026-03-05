@@ -1,0 +1,6 @@
+2026-03-05T09:04:20.465068Z
+441/450
+98.00
+openai-o3-mini
+seds_f2_C4_L1000_021
+family2_anomaly

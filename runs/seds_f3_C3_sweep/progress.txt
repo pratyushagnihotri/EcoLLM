@@ -1,0 +1,6 @@
+2026-02-21T10:54:54.352761Z
+4491/4500
+99.80
+ollama-qwen-latest
+seds_f3_C3_r1000_027
+family3_forecast

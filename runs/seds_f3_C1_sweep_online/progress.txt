@@ -1,0 +1,6 @@
+2026-03-05T00:42:48.030025Z
+71/75
+94.67
+openai-o3-mini
+seds_f3_C1_r1000_001
+family3_forecast
