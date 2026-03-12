@@ -30,7 +30,7 @@ Important files:
 - Online/OpenAI+EcoLogits benchmark: <code>bench_ecologits_online_merged.py</code>
 - Export parquet→CSV: <code>scripts/export_parquet_to_csv.py</code>
 - Plotting (insight plots): <code>scripts/plot_insight_bench.py</code>
-- Streamlit leaderboard: <code>streamlit_leaderboard_mvp.py</code>
+- Streamlit leaderboard: <code>ecoLLM_benchmark.py</code>
 
 ## 1) Setup (one-time)
 
@@ -250,7 +250,7 @@ We provide a lightweight UI to:
 Run:
 
 ```bash 
-streamlit run streamlit_leaderboard_mvp.py
+streamlit run ecoLLM_benchmark.py
 ```
 
 You can point it to any run directory under `runs/`.
