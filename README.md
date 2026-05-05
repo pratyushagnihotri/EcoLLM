@@ -5,54 +5,65 @@
 
 # EcoLLM: Energy-aware LLM Bench for Sustainable AI Data Systems
 
-This repo benchmarks offline + online LLMs on energy/data-system workloads with metrics:
+EcoLLM benchmarks offline and online LLMs on energy/data-system workloads using a unified evaluation pipeline.
 
-- Quality: pass rate, JSON-valid rate, numeric MAE/RMSE, anomaly F1, code/sql checks
-- Efficiency: latency (avg/p95), tokens
-- Cost: API cost (online), energy cost (kWh→€), etc.
-- Sustainability: energy (kWh) + emissions (kg CO₂e)
-- Resources: CPU/memory deltas
+The benchmark tracks:
 
-We start with EIA SEDS (industrial energy consumption) and progressively add task families and datasets.
+- **Quality**: task pass rate, anomaly classification accuracy/F1, code compilation checks
+- **Efficiency**: latency (avg / p95)
+- **Sustainability**: energy (kWh)
 
-## 0) Repo structure (what matters)
+We start with EIA SEDS industrial energy consumption data and generate benchmark task families from it. The current benchmark design defines difficulty in terms of **data-management operator semantics** rather than prompt length. The four workload families now align with semantic filtering, anomaly/validation reasoning, join-based analytics, and pipeline code generation. 
 
-Key folders:
+---
 
-- runs/ → all experiment outputs (parquet + csv) per run directory
-- tasks/ → generated YAML tasks (family/complexity/table size sweeps)
-- scripts/ → dataset prep, task generation, exporters, plotting tools
-- dashboard/ or Streamlit scripts → UI for inspection & comparison
+## Repository structure
+
+Important folders:
+
+- `runs/` → experiment outputs per run directory
+- `tasks/` → generated YAML benchmark tasks
+- `ecoLLM/` → dataset prep, task generation, export, plotting
+- `reference_images/` → project assets
+- `Streamlit/UI` → leaderboard and inspection frontend
 
 Important files:
 
-- Offline/Local benchmark: <code>bench.py</code>
-- Online/OpenAI+EcoLogits benchmark: <code>bench_ecologits_online_merged.py</code>
-- Export parquet→CSV: <code>scripts/export_parquet_to_csv.py</code>
-- Plotting (insight plots): <code>scripts/plot_insight_bench.py</code>
-- Streamlit leaderboard: <code>ecoLLM_benchmark.py</code>
+- **Offline / local benchmark:** `bench.py` 
+- **Online / OpenAI + EcoLogits benchmark:** `bench_ecologits_online.py`
+- **Dataset preparation:** `ecoLLM/seds_fetch_prepare.py`
+- **SEDS task generators:** `ecoLLM/gen_seds_family*_sweep.py`
+- **Export parquet → CSV:** `ecoLLM/export_parquet_to_csv.py`
+- **Plotting:** `ecoLLM/plots_ecoLLM.py`
+- **Streamlit leaderboard:** `ecoLLM_benchmark.py`
 
-## 1) Setup (one-time)
+## 1) Setup
 
-### 1.1 Create environment
+### 1.1 Create a virtual environment
 
 ```bash 
 python -m venv .venv
 source .venv/bin/activate
 pip install -U pip
-1.2 Install dependencies
 ```
 
-Use your repo’s `requirements.txt`, or minimally:
+### 1.2 Install dependencies
+Use our project repo’s `requirements.txt`, or minimally install:
 
 ```bash
 pip install pandas pyarrow pyyaml numpy matplotlib plotly streamlit psutil requests scienceplots openpyxl
 pip install "ecologits[openai]" openai
 ```
 
-## 2) Phase 1 — Offline models (Ollama)
+If you also use local Ollama models:
 
-### 2.1 Start Ollama and pull models
+```bash
+pip install requests
+```
+
+## 2) Offline models (Ollama)
+
+### 2.1 Start Ollama
 
 Make sure Ollama runs:
 
@@ -60,6 +71,7 @@ Make sure Ollama runs:
 ollama serve
 ```
 
+### 2.2 Pull models
 Pull models you want (examples):
 
 ```bash 
@@ -72,71 +84,89 @@ ollama pull deepseek-coder:latest
 ollama pull codellama:latest
 ```
 
-Confirm:
+Check installed models:
 
 ```bash
 ollama list
 ```
 
-## 3) Phase 2 — Get dataset (EIA SEDS)
+## 3) Dataset preparation (EIA SEDS)
 
 ### 3.1 Fetch and prepare SEDS
 
 Run:
 
 ```bash
-python scripts/seds_fetch_prepare.py --repo-root . --overwrite --industrial-only
+python ecoLLM/seds_fetch_prepare.py --repo-root . --overwrite --industrial-only --add-report-text
 ```
+This script:
+
+- downloads EIA SEDS CSV + codebook
+- enriches rows with MSN descriptions and units
+- writes Parquet output
+- adds an LLM-friendly Report_Text column used by the new task generators
 
 Expected outputs (examples):
 
 - `data/raw/Complete_SEDS.csv`
+- `data/raw/Codes_and_Descriptions.xlsx`
+- `data/processed/seds_enriched.parquet`
 - `data/processed/seds_industrial_consumption.parquet`
 
 If you don’t see `data/processed/...`, fix that first before generating tasks.
 
-## 4) Phase 3 — Generate tasks (Families + Complexity + Table sizes)
 
-We use Families and Complexities:
+## 4) Benchmark families and complexity
 
-<b>Family definitions (high level)</b>
+### 4.1 Workload families
 
-- <b>Family 1 (F1):</b> Data Q&A grounded in a table (aggregation, max/min, deltas, averages)
-- <b>Family 2 (F2):</b> Anomaly triage (spike, missing, step change, drift) + checks
-- <b>Family 3 (F3):</b> Root cause / explanation style tasks (more reasoning, evidence)
-- <b>Family 4 (F4):</b> Code/Query generation (SQL/Pandas operators, pipelines)
+The current benchmark families are:
 
-<b>Complexity levels (C1–C4)</b>
+- <b>Family 1 (F1):</b> Semantic tabular reasoning
+  - text-aware filtering over Report_Text
+  - aggregation, grouping, ranking over a single table
+- <b>Family 2 (F2):</b> Data-quality reasoning / anomaly classification
+  - classify anomaly type over structured state-year histories
+  - combines numeric trends and report narratives
+- <b>Family 3 (F3):</b> Join-based multi-step analytics
+  - joins an energy table with a reports/events table
+  - performs semantic filtering, subset comparison, aggregation, ranking
+- <b>Family 4 (F4):</b> Pipeline code generation
+  - generate Python/pandas pipelines
+  - includes semantic filtering and multi-table joins
 
-- <b>C1 (easy):</b> single operator (max / filter / simple groupby)
-- <b>C2 (medium):</b> top-k + aggregation + rename / constraints
-- <b>C3 (hard):</b> YoY delta + join/merge/pivot logic
-- <b>C4 (hard+):</b> rolling/window/ranking per state, multi-year stats
+### 4.2 Complexity levels
+- <b>C1 (easy):</b>  single-step operator
+- <b>C2 (medium):</b> multi-operator query
+- <b>C3 (hard):</b> derived statistic / subset comparison / multi-step reasoning
+- <b>C4 (hard+):</b> composed analytical pipeline
 
-<b>Table sizes</b>
+
+### 4.3 Table sizes
 
 We benchmark scaling using:
 `[20, 100, 250, 500, 1000]` rows.
 
-### 4.1 Generate tasks (example)
+
+## 5) Generate tasks (example)
 
 ```
-python scripts/gen_seds_family1_sweep.py --repo-root . --bases 30 --row-sizes 20 100 250 500 1000
-python scripts/gen_seds_family2_sweep.py --repo-root . --bases 30 --row-sizes 20 100 250 500 1000
-python scripts/gen_seds_family3_sweep.py --repo-root . --bases 30 --row-sizes 20 100 250 500 1000
-python scripts/gen_seds_family4_sweep.py --repo-root . --bases 30 --row-sizes 20 100 250 500 1000
+python ecoLLM/gen_seds_family1_sweep.py --repo-root . --bases 30 --row-sizes 20 100 250 500 1000
+python ecoLLM/gen_seds_family2_sweep.py --repo-root . --bases 30 --row-sizes 20 100 250 500 1000
+python ecoLLM/gen_seds_family3_sweep.py --repo-root . --bases 30 --row-sizes 20 100 250 500 1000
+python ecoLLM/gen_seds_family4_sweep.py --repo-root . --bases 30 --row-sizes 20 100 250 500 1000
 ```
 
-This should populate:
+This should generate:
 
-- `tasks/family1_qa/seds_f1_C1_sweep.yaml … C4`
-- `tasks/family2_anomaly/seds_f2_C1_sweep.yaml … C4`
+- `tasks/family1..4_qa/seds_f1_C1_sweep.yaml`
+- `tasks/family1..4_qa/seds_f1_C2_sweep.yaml`
+- `tasks/family1..4_qa/seds_f1_C3_sweep.yaml`
+- `tasks/family1..4_qa/seds_f1_C4_sweep.yaml`
 
-etc.
+## 6) Run offline benchmarks (Ollama)
 
-## 5) Run offline benchmarks (Ollama)
-
-You run per family + complexity (recommended to debug small first).
+You can run per family + complexity (recommended to debug small first).
 
 Example (F1-C1):
 
@@ -144,15 +174,26 @@ Example (F1-C1):
 python bench.py all --config configs/run_seds_f1_C1.yaml
 ```
 
-It produces:
+The offline benchmark script:
 
+- loads YAML tasks
+- renders prompts with strict JSON output contract
+- runs local models (dummy / Ollama)
+- records latency, energy emissions, and pass rate
+- scores outputs
+- writes leaderboards and results files
+
+Typical outputs:
+
+- `runs/<run_name>/runs.jsonl`
 - `runs/<run_name>/runs.parquet`
 - `runs/<run_name>/results.parquet`
 - `runs/<run_name>/leaderboard_by_family.parquet`
 - `runs/<run_name>/leaderboard_by_family_rows.parquet`
-- CSV versions if enabled
+- `runs/<run_name>/progress.log`
+- `runs/<run_name>/progress.txt`
 
-### 5.1 Watch progress
+### 6.1 Watch progress
 
 Every run writes:
 
@@ -165,15 +206,15 @@ So you can tail:
 tail -f runs/seds_f1_C1_sweep/progress.log
 ```
 
-## 6) Run online benchmarks (OpenAI + EcoLogits)
+## 7) Run online benchmarks (OpenAI + EcoLogits)
 
-### 6.1 Set API key
+### 7.1 Set API key
 
 ```
 export OPENAI_API_KEY="..."
 ```
 
-### 6.2 Run online benchmark script
+### 7.2 Run online benchmark script
 
 Use the merged EcoLogits benchmark:
 
@@ -181,63 +222,71 @@ Use the merged EcoLogits benchmark:
 python bench_ecologits_online_merged.py all --config configs/run_seds_f2_C1_online.yaml
 ```
 
-This script:
-- Uses <b>EcoLogits energy/emissions</b> for OpenAI calls when available
-- Generates `leaderboard_by_family_rows.*` so plotting works
+The online benchmark script:
 
-## 7) Export all runs to CSV (batch)
+- uses OpenAI models through the OpenAI SDK
+- uses EcoLogits for energy and emissions when available
+- falls back to local heuristic energy for non-online adapters
+- supports GPT-family and reasoning-family models
+- writes the same benchmark output structure as the offline runner
+
+### 7.3 Important OpenAI note
+
+Reasoning models such as `o3-mini` require `max_completion_tokens` internally, while `GPT-4.1` models use the normal token-limit path. The patched online benchmark file already handles this distinction.
+
+## 8) Export all runs/results to CSV (batch)
 
 You can export a run:
 
 ```
-python scripts/export_parquet_to_csv.py --run-dir runs/seds_f1_C2_sweep
+python ecoLLM/export_parquet_to_csv.py --run-dir runs/seds_f1_C2_sweep
 ```
 
 Or export <b>all offline + online sweeps</b>:
 
 ```
-bash scripts/export_all_seds_csv.sh
+bash ecoLLM/export_all_seds_csv.sh
 ```
 
 This creates `runs/<run>/csv/*.csv`.
 
-## 8) Plotting (paper-ready figures)
+## 9) Plotting
 
-### 8.1 Insight plots (offline / online / combined)
+### 9.1 Insight plots (offline / online / combined)
 
 Use the plot suite script:
 
 offline only:
 
 ```
-python scripts/plot_insight_bench_v4.py --runs-root runs --out-root plots_insight_v4 --mode offline
+python ecoLLM/plots_ecoLLM.py --runs-root runs --out-root plots_insight_v4 --mode offline
 ```
 
 online only:
 
 ```
-python scripts/plot_insight_bench_v4.py --runs-root runs --out-root plots_insight_v4 --mode online
+python ecoLLM/plots_ecoLLM.py --runs-root runs --out-root plots_insight --mode online
 ```
 
 combined:
 
 ```
-python scripts/plot_insight_bench_v4.py --runs-root runs --out-root plots_insight_v4 --mode combined
+python ecoLLM/plots_ecoLLM.py --runs-root runs --out-root plots_insight --mode combined
 ```
 
 all three:
 
 ```
-python scripts/plot_insight_bench_v4.py --runs-root runs --out-root plots_insight_v4 --mode all
+python ecoLLM/plots_ecoLLM.py --runs-root runs --out-root plots_insight --mode all
 ```
 
 Outputs in:
 
-- `plots_insight_v4/offline/...`
-- `plots_insight_v4/online/...`
-- `plots_insight_v4/combined/...`
+- `plots_insight/offline/...`
+- `plots_insight/online/...`
+- `plots_insight/combined/...`
 
-## 9) Frontend (Streamlit)
+## 10) Frontend (Streamlit)
 
 We provide a lightweight UI to:
 
@@ -245,7 +294,7 @@ We provide a lightweight UI to:
 - inspect per-task outputs
 - visualize tradeoffs and table-size scaling
 
-### 9.1 Streamlit leaderboard
+### 10.1 Streamlit leaderboard
 
 Run:
 
@@ -262,7 +311,7 @@ Common pages:
 - <b>Table-size</b> impact (rows vs metrics)
 - <b>Task inspector</b> (prompt/output/fail reason)
 
-### 9.2 Where the UI reads from
+### 10.2 Where the UI reads from
 
 The UI expects these files per run:
 - `leaderboard_by_family.parquet`
@@ -283,7 +332,7 @@ python bench_ecologits_online_merged.py score --run-dir <run>
 python bench_ecologits_online_merged.py aggregate --run-dir <run>
 ```
 
-## 10) Recommended workflow (fast + safe)
+## 11) Recommended workflow (fast + safe)
 
 <b>Step A: Validate pipeline (small)</b>
 
@@ -313,7 +362,7 @@ Use:
 - tradeoff plots (quality vs energy/cost)
 - cross-family comparisons (C1–C4)
 
-## 11) Typical issues and fixes
+## 12) Typical issues and fixes
 
 - <b>“No online runs found” in plotting</b>
 
@@ -327,12 +376,22 @@ Fix by rerunning score/aggregate with the merged online script.
 
 Use the merged script; it sends `max_completion_tokens` for `o*` models.
 
-## 12) What you will have at the end
+- <b>No online runs found in plotting</b>
 
-A reproducible benchmark suite with:
+Make sure the run directory contains:
+
+- `leaderboard_by_family.parquet`
+- `leaderboard_by_family_rows.parquet`
+
+If not, rerun score and aggregate.
+
+
+## 13) What you will have at the end
+
+At the end, EcoLLM gives you a reproducible benchmark suite for comparing LLMs across:
 
 - <b>Offline vs online model comparison</b>
-- <b>Energy / emissions / cost vs accuracy tradeoffs</b>
-- <b>Scaling study:</b> how table size increases latency/energy/cost
+- <b>quality vs latency vs energy tradeoffs</b>
+- <b>Scaling study:</b> how table size increases latency/energy/accuracy
 - <b>Leaderboards by family and complexity</b>
 - <b>A Streamlit UI</b> to demo and debug results live
