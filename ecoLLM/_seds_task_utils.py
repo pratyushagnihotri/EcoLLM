@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""
-Shared helpers for SEDS task generators.
-
-This file is intentionally **backwards compatible** across generator versions.
-In particular, `sample_distractors(...)` accepts an optional `rng` argument,
-so older generators calling it with 3 args and newer ones with 4 args both work.
-"""
 from __future__ import annotations
 
 import random
