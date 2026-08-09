@@ -1,0 +1,6 @@
+models:
+- model_id: ollama-llama3.1-8b
+  adapter: ollama
+  params:
+    model_name: llama3.1:8b
+    host: http://localhost:11434

@@ -1,0 +1,21 @@
+run:
+  run_id: ui-family1-qa-c1-offline-230142
+  output_dir: runs/ui_runs/ui-family1-qa-c1-offline-230142
+  mode: batch
+  decoding:
+    temperature: 0.0
+    max_tokens: 500
+  constraints:
+    timeout_s: 60
+  repeats: 1
+  random_seed: 7
+  electricity_price_eur_per_kwh: 0.3
+tasks:
+  include:
+  - tasks/family1_qa/seds_f1_C1_sweep.yaml
+models:
+- model_id: offline-qwen2.5-7b
+  adapter: ollama
+  params:
+    model_name: qwen2.5:7b-instruct
+    host: http://localhost:11434
