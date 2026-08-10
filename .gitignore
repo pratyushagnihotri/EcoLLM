@@ -25,3 +25,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Superseded dashboard versions — only the latest (v3) is tracked
+dashboard/ecoLLM_benchmark.py
+dashboard/ecoLLM_benchmark_v2.py
