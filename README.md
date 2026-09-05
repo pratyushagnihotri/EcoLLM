@@ -7,6 +7,21 @@
 
 EcoLLM benchmarks offline and online LLMs on energy/data-system workloads using a unified evaluation pipeline.
 
+## Citation
+
+Please cite our papers, if you find this work useful or use it in your paper as a baseline.
+
+```
+@inproceedings{agnihotri_EcoLLM_aidm26,
+author = {Agnihotri, Pratyush and Luthra, Manisha and Binnig, Carsten},
+title = {EcoLLM: Energy-Aware Benchmarking of LLMs for Data Processing Workloads},
+year = {2026},
+publisher = {Association for Computing Machinery},
+pages = {3–12},
+numpages = {10}
+}
+```
+
 The benchmark tracks:
 
 - **Quality**: task pass rate, anomaly classification accuracy/F1, code compilation checks
